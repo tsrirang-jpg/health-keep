@@ -1,0 +1,9 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "HealthKeep: Start API + PostgreSQL", "type": "shell", "command": "docker compose up -d --build", "problemMatcher": [] },
+    { "label": "HealthKeep: Expo Web", "type": "shell", "command": "npm run web", "options": { "cwd": "${workspaceFolder}/mobile" }, "isBackground": true, "problemMatcher": [] },
+    { "label": "HealthKeep: Integration tests", "type": "shell", "command": "docker compose --profile test run --build --rm api-tests", "problemMatcher": [] },
+    { "label": "HealthKeep: TypeScript", "type": "shell", "command": "npm run typecheck", "options": { "cwd": "${workspaceFolder}/mobile" }, "problemMatcher": ["$tsc"] }
+  ]
+}

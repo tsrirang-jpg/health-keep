@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+!mobile/.env.example
+node_modules/
+.expo/
+dist/
+target/
+*.log
+.DS_Store
+.idea/
+playwright-report/
+test-results/

@@ -1,0 +1,66 @@
+name: healthkeep
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-healthkeep}
+      POSTGRES_USER: ${POSTGRES_USER:-healthkeep}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/init-local.ps1 first}
+    ports:
+      - "127.0.0.1:${DB_PORT:-15432}:5432"
+    volumes:
+      - healthkeep_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-healthkeep}
+      DATABASE_USER: ${POSTGRES_USER:-healthkeep}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/init-local.ps1 first}
+      JWT_SECRET: ${JWT_SECRET:?Run scripts/init-local.ps1 first}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8081,http://127.0.0.1:8081}
+    ports:
+      - "${API_BIND_ADDRESS:-127.0.0.1}:${API_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080; printf \"GET /actuator/health HTTP/1.0\\r\\n\\r\\n\" >&3; cat <&3 | grep -q UP'"]
+      start_period: 60s
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  db-test:
+    image: postgres:17-alpine
+    profiles: [test]
+    environment:
+      POSTGRES_DB: healthkeep_test
+      POSTGRES_USER: healthkeep_test
+      POSTGRES_PASSWORD: synthetic-test-password
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthkeep_test -d healthkeep_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  api-tests:
+    profiles: [test]
+    build:
+      context: ./backend
+      target: build
+    environment:
+      DATABASE_URL: jdbc:postgresql://db-test:5432/healthkeep_test
+      DATABASE_USER: healthkeep_test
+      DATABASE_PASSWORD: synthetic-test-password
+      JWT_SECRET: synthetic-test-only-secret-at-least-32-bytes
+    command: ["mvn", "-B", "-ntp", "test"]
+    depends_on:
+      db-test:
+        condition: service_healthy
+volumes:
+  healthkeep_pgdata:

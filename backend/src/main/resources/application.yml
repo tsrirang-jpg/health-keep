@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: healthkeep-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:15432/healthkeep}
+    username: ${DATABASE_USER:healthkeep}
+    password: ${DATABASE_PASSWORD}
+  flyway:
+    enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+  tomcat:
+    max-http-form-post-size: 64KB
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+healthkeep:
+  jwt-secret: ${JWT_SECRET}
+  issuer: healthkeep
+  cors-origins: ${CORS_ORIGINS:http://localhost:8081,http://127.0.0.1:8081}
